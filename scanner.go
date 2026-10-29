@@ -92,7 +92,7 @@ func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-c
 
 	var wg sync.WaitGroup
 	wg.Add(s.concurrency)
-	for i := 0; i < s.concurrency; i++ {
+	for range s.concurrency {
 		go func() {
 			defer wg.Done()
 			for t := range tasks {

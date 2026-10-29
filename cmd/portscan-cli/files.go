@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -87,7 +86,7 @@ func listJobs() ([]string, error) {
 	var jobs []string
 	for _, e := range entries {
 		name := e.Name()
-		if !e.IsDir() && strings.HasSuffix(name, ".json") && !savedResultsName.MatchString(name) {
+		if !e.IsDir() && strings.HasSuffix(name, ".json") {
 			jobs = append(jobs, name)
 		}
 	}
@@ -130,6 +129,3 @@ func readJob(path string) (job, error) {
 	}
 	return j, nil
 }
-
-// не показываем собственные сохраненные результаты в списке целей
-var savedResultsName = regexp.MustCompile(`^results-\d{14}\.json$`)

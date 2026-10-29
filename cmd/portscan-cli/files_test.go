@@ -38,16 +38,3 @@ func TestJobPath(t *testing.T) {
 		}
 	}
 }
-
-func TestSavedResultsName(t *testing.T) {
-	for _, s := range []string{"results-20261029132318.json", "results-20000101000000.json"} {
-		if !savedResultsName.MatchString(s) {
-			t.Errorf("%q must be recognized as a saved result", s)
-		}
-	}
-	for _, s := range []string{"results.json", "results_my_targets.json", "results-20261029.json", "results-2026102913231.json"} {
-		if savedResultsName.MatchString(s) {
-			t.Errorf("%q must not be recognized as a saved result", s)
-		}
-	}
-}

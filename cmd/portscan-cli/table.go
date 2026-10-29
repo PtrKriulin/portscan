@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -31,11 +30,11 @@ func printResults(w io.Writer, results []portscan.Result) {
 	headers := []string{"HOST", "IP", "Ver", "PORT", "STATUS", "ERR", "TIME"}
 
 	rows := append([]portscan.Result(nil), results...)
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].Port != rows[j].Port {
-			return rows[i].Port < rows[j].Port
+	slices.SortFunc(rows, func(a, b portscan.Result) int {
+		if a.Port != b.Port {
+			return int(a.Port) - int(b.Port)
 		}
-		return ipLess(rows[i].IP, rows[j].IP)
+		return ipCompare(a.IP, b.IP)
 	})
 
 	cells := make([][]string, len(rows))
@@ -105,10 +104,15 @@ func lpad(s string, w int) string {
 	return s
 }
 
-func ipLess(a, b net.IP) bool {
+func ipCompare(a, b net.IP) int {
 	ab, bb := a.To16(), b.To16()
-	if ab == nil || bb == nil {
-		return ab == nil && bb != nil
+	switch {
+	case ab == nil && bb == nil:
+		return 0
+	case ab == nil:
+		return -1
+	case bb == nil:
+		return 1
 	}
-	return bytes.Compare(ab, bb) < 0
+	return slices.Compare(ab, bb)
 }
