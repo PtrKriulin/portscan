@@ -5,14 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"runtime"
 	"strconv"
 	"sync"
 	"time"
 )
 
+// дефолт 100: задача сетевая (I/O-bound), ограничена сокетами и таймаутами,
+// а не числом ядер; для больших объемов задаем WithConcurrency явно
 func defaultConcurrency() int {
-	return runtime.NumCPU()
+	return 100
 }
 
 // Scanner выполняет конкурентные TCP connect проверки портов

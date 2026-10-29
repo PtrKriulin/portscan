@@ -70,8 +70,6 @@ func classify(ctx, dialCtx context.Context, err error) State {
 			syscall.EHOSTDOWN, syscall.ENETDOWN,
 			syscall.ECONNABORTED, syscall.ENETRESET:
 			return StateUnreachable
-		case syscall.EACCES, syscall.EPERM:
-			return StateError
 		}
 	}
 	return StateError
