@@ -9,14 +9,12 @@ import (
 	"strings"
 )
 
-// ip == nil значит хост не разрешился
 type target struct {
 	host string
 	ip   net.IP
 	err  error
 }
 
-// IP-литералы как есть, DNS-имена дают цель на каждый адрес, дубли убираем
 func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 	if len(hosts) == 0 {
 		return nil, fmt.Errorf("portscan: no hosts specified")
@@ -47,7 +45,6 @@ func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 			case ctx.Err() != nil:
 				return nil, ctx.Err()
 			case isNotFound(err):
-				// не найден - исход отдельного хоста а не всего скана
 				out = append(out, target{host: h, err: err})
 			default:
 				return nil, fmt.Errorf("portscan: resolving %q: %w", h, err)
@@ -75,8 +72,6 @@ func isNotFound(err error) bool {
 	return errors.As(err, &dnsErr) && dnsErr.IsNotFound
 }
 
-// хостовые биты и гигантские префиксы (> /16) - ошибка а не молчивый resize,
-// иначе 0.0.0.0/0 развернется в 4 млрд адресов; network и broadcast включаем
 func cidrAddrs(host string) ([]net.IP, error) {
 	p, err := netip.ParsePrefix(host)
 	if err != nil {

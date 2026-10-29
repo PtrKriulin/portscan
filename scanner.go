@@ -46,9 +46,6 @@ func New(opts ...Option) (*Scanner, error) {
 	return s, nil
 }
 
-// Scan валидирует ввод и резолвит хостов синхронно, ошибку отдает до старта
-// горутин. Ошибка резолвинга одного имени не прерывает скан - придет
-// отдельным Result с ip == nil. Канал закрывается после всех результатов
 func (s *Scanner) Scan(ctx context.Context, hosts []string, specs ...PortSpec) (<-chan Result, error) {
 	if ctx == nil {
 		return nil, errors.New("portscan: nil context")
