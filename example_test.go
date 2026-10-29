@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"portscan"
+	"github.com/PtrKriulin/portscan"
 )
 
 func ExampleScanner_Scan() {

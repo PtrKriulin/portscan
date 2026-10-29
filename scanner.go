@@ -15,21 +15,28 @@ func defaultConcurrency() int {
 	return runtime.NumCPU()
 }
 
+// Scanner выполняет конкурентные TCP connect проверки портов
+// поля приватные, настройка только через опции в New
 type Scanner struct {
 	concurrency int
 	timeout     time.Duration
 }
 
+// Option настраивает Scanner
 type Option func(*Scanner)
 
+// WithConcurrency задает максимум одновременных подключений
 func WithConcurrency(n int) Option {
 	return func(s *Scanner) { s.concurrency = n }
 }
 
+// WithConnectTimeout задает таймаут одного TCP подключения (не всего скана)
 func WithConnectTimeout(d time.Duration) Option {
 	return func(s *Scanner) { s.timeout = d }
 }
 
+// New создает сканер: дефолты, потом опции, потом валидация
+// при некорректных значениях возвращаем ошибку
 func New(opts ...Option) (*Scanner, error) {
 	s := &Scanner{concurrency: defaultConcurrency(), timeout: time.Second}
 	for _, opt := range opts {
@@ -46,6 +53,10 @@ func New(opts ...Option) (*Scanner, error) {
 	return s, nil
 }
 
+// Валидация и разрешение хостов синхронные, проверки конкурентные
+// ошибки валидации и отмены до старта возвращаются как error,
+// ошибки отдельных хостов - как Result в канале
+// канал закрывается один раз после завершения всех проверок или отмены
 func (s *Scanner) Scan(ctx context.Context, hosts []string, specs ...PortSpec) (<-chan Result, error) {
 	if ctx == nil {
 		return nil, errors.New("portscan: nil context")
@@ -65,7 +76,10 @@ func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-c
 	tasks := make(chan task, s.concurrency)
 	results := make(chan Result, s.concurrency)
 
+	var wg sync.WaitGroup
+	wg.Add(s.concurrency + 1) // воркеры + продюсер: close(results) строго после выхода всех
 	go func() {
+		defer wg.Done()
 		defer close(tasks)
 		for _, t := range targets {
 			if t.ip == nil {
@@ -87,8 +101,6 @@ func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-c
 		}
 	}()
 
-	var wg sync.WaitGroup
-	wg.Add(s.concurrency)
 	for range s.concurrency {
 		go func() {
 			defer wg.Done()
@@ -141,6 +153,14 @@ func (s *Scanner) check(ctx context.Context, t task) Result {
 }
 
 func send(ctx context.Context, results chan<- Result, res Result) bool {
+	// сначала неблокирующая попытка: если контекст уже отменен и буфер
+	// пуст, select с двумя готовыми кейсами выбрал бы случайную ветку
+	// и результат терялся бы примерно в половине случаев
+	select {
+	case results <- res:
+		return true
+	default:
+	}
 	select {
 	case results <- res:
 		return true

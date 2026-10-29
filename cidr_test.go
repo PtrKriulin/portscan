@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"portscan"
+	"github.com/PtrKriulin/portscan"
 )
 
 func cidrResults(t *testing.T, hosts []string) []portscan.Result {

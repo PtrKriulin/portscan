@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"portscan"
+	"github.com/PtrKriulin/portscan"
 )
 
 func requireNoError(t *testing.T, err error) {

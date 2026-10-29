@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"portscan"
+	"github.com/PtrKriulin/portscan"
 )
 
 func BenchmarkScanLoopback(b *testing.B) {

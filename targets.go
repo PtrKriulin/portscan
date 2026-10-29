@@ -43,7 +43,13 @@ func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			out = append(out, target{host: h, err: err})
+			// ошибочный хост дедупим по имени без учета регистра:
+			// повтор неразрешимого имени не должен плодить дубли ошибок
+			key := "e\x00" + strings.ToLower(h)
+			if _, dup := seen[key]; !dup {
+				seen[key] = struct{}{}
+				out = append(out, target{host: h, err: err})
+			}
 			continue
 		}
 		for _, addr := range addrs {
@@ -54,7 +60,7 @@ func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 }
 
 func appendTarget(out []target, seen map[string]struct{}, host string, ip net.IP) []target {
-	key := host + "\x00" + ip.String()
+	key := strings.ToLower(host) + "\x00" + ip.String()
 	if _, dup := seen[key]; dup {
 		return out
 	}
