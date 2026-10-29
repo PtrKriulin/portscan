@@ -1,0 +1,9 @@
+services:
+  portscan:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../data:/data
