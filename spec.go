@@ -10,10 +10,13 @@ func isValidPort(p int) bool {
 	return p > 0 && p <= math.MaxUint16
 }
 
+// PortSpec - описание проверяемых портов
+// интерфейс не экспортирует метод: новые спеки добавляются только внутри пакета
 type PortSpec interface {
 	expand() ([]uint16, error)
 }
 
+// Range - диапазон портов, обе границы включительно
 func Range(from, to int) PortSpec { return rangeSpec{from: from, to: to} }
 
 type rangeSpec struct{ from, to int }
@@ -32,7 +35,12 @@ func (r rangeSpec) expand() ([]uint16, error) {
 	return ports, nil
 }
 
-func List(ports ...int) PortSpec { return listSpec(ports) }
+// List - список портов, копирует входные значения
+func List(ports ...int) PortSpec {
+	c := make(listSpec, len(ports))
+	copy(c, ports)
+	return c
+}
 
 type listSpec []int
 

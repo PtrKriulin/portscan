@@ -10,4 +10,5 @@ var (
 	ErrNoPorts        = errors.New("portscan: no ports specified")
 	ErrPortOutOfRange = errors.New("portscan: port outside [1, 65535]")
 	ErrReversedRange  = errors.New("portscan: reversed port range")
+	ErrNilContext     = errors.New("portscan: nil context")
 )

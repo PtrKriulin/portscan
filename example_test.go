@@ -39,3 +39,5 @@ func ExampleScanner_Scan() {
 		fmt.Println(result.State)
 	}
 }
+
+// Output: open

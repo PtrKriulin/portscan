@@ -195,10 +195,17 @@ func TestScanUnreachableNetwork(t *testing.T) {
 func TestScanNoGoroutineLeak(t *testing.T) {
 	before := runtime.NumGoroutine()
 
+	s := mustScanner(t)
+	// подвешенный dial: проверка длится до отмены контекста,
+	// независимо от сети и маршрутизации
+	portscan.SetTestDial(s, func(ctx context.Context, network, addr string) (net.Conn, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+
 	// отмененный скан: продюсер, воркеры и closer должны завершиться
 	ctx, cancel := context.WithCancel(context.Background())
-	s := mustScanner(t)
-	results, err := s.Scan(ctx, []string{"127.0.0.1", "192.0.2.1"}, portscan.Range(1, 2000))
+	results, err := s.Scan(ctx, []string{"127.0.0.1"}, portscan.Range(1, 2000))
 	requireNoError(t, err)
 	time.Sleep(20 * time.Millisecond)
 	cancel()
@@ -207,7 +214,7 @@ func TestScanNoGoroutineLeak(t *testing.T) {
 
 	// отмененный потребитель: воркеры заблокированы в send, отменяются
 	ctx2, cancel2 := context.WithCancel(context.Background())
-	results2, err := s.Scan(ctx2, []string{"192.0.2.1"}, portscan.Range(1, 200))
+	results2, err := s.Scan(ctx2, []string{"127.0.0.1"}, portscan.Range(1, 200))
 	requireNoError(t, err)
 	cancel2()
 	<-results2 // канал закрывается и при нечитающем потребителе
@@ -225,7 +232,11 @@ func TestScanNoGoroutineLeak(t *testing.T) {
 func TestScanCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := mustScanner(t)
-	results, err := s.Scan(ctx, []string{"192.0.2.1"}, portscan.Range(1, 65535))
+	portscan.SetTestDial(s, func(ctx context.Context, network, addr string) (net.Conn, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+	results, err := s.Scan(ctx, []string{"127.0.0.1"}, portscan.Range(1, 500))
 	requireNoError(t, err)
 	time.Sleep(20 * time.Millisecond)
 	cancel()
@@ -235,13 +246,40 @@ func TestScanCancel(t *testing.T) {
 			canceled++
 		} else {
 			other++
-			if r.State == portscan.StateOpen {
-				t.Skipf("TEST-NET target reported open (transparent network)")
-			}
 		}
 	}
 	if canceled == 0 {
 		t.Fatal("no canceled results reported")
+	}
+	if other != 0 {
+		t.Fatalf("%d non-canceled results after cancel", other)
+	}
+}
+
+// стресс-тест на сценарий исправленной гонки: неразрешимые хосты
+// продюсера + подвешенный dial + медленный потребитель + отмена
+func TestScanCancelUnresolvableSlowConsumerStress(t *testing.T) {
+	s := mustScanner(t)
+	portscan.SetTestDial(s, func(ctx context.Context, network, addr string) (net.Conn, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+	hosts := []string{
+		"bad1.invalid.invalid", "bad2.invalid.invalid",
+		"127.0.0.1", "127.0.0.1",
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	results, err := s.Scan(ctx, hosts, portscan.Range(1, 200))
+	requireNoError(t, err)
+	time.Sleep(30 * time.Millisecond)
+	cancel()
+	n := 0
+	for range results {
+		n++
+		time.Sleep(time.Millisecond) // медленный потребитель
+	}
+	if n == 0 {
+		t.Fatal("no results delivered")
 	}
 }
 
@@ -314,6 +352,10 @@ func TestValidationSentinelErrors(t *testing.T) {
 		want error
 		fn   func() error
 	}{
+		{"nil ctx", portscan.ErrNilContext, func() error {
+			_, err := newScanner().Scan(nil, []string{"127.0.0.1"}, portscan.List(80))
+			return err
+		}},
 		{"no hosts", portscan.ErrNoHosts, func() error {
 			_, err := newScanner().Scan(context.Background(), nil, portscan.List(80))
 			return err

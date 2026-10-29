@@ -2,7 +2,6 @@ package portscan
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -21,6 +20,7 @@ func defaultConcurrency() int {
 type Scanner struct {
 	concurrency int
 	timeout     time.Duration
+	dial        func(context.Context, string, string) (net.Conn, error)
 }
 
 // Option настраивает Scanner
@@ -54,13 +54,12 @@ func New(opts ...Option) (*Scanner, error) {
 	return s, nil
 }
 
-// Валидация и разрешение хостов синхронные, проверки конкурентные
 // ошибки валидации и отмены до старта возвращаются как error,
 // ошибки отдельных хостов - как Result в канале
 // канал закрывается один раз после завершения всех проверок или отмены
 func (s *Scanner) Scan(ctx context.Context, hosts []string, specs ...PortSpec) (<-chan Result, error) {
 	if ctx == nil {
-		return nil, errors.New("portscan: nil context")
+		return nil, ErrNilContext
 	}
 	ports, err := expandSpecs(specs...)
 	if err != nil {
@@ -78,7 +77,7 @@ func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-c
 	results := make(chan Result, s.concurrency)
 
 	var wg sync.WaitGroup
-	wg.Add(s.concurrency + 1) // воркеры + продюсер: close(results) строго после выхода всех
+	wg.Add(s.concurrency + 1) // воркеры + продюсер: close после выхода всех
 	go func() {
 		defer wg.Done()
 		defer close(tasks)
@@ -131,12 +130,15 @@ type task struct {
 
 func (s *Scanner) check(ctx context.Context, t task) Result {
 	start := time.Now()
+	addr := net.JoinHostPort(t.target.ip.String(), strconv.Itoa(int(t.port)))
 	dialCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-
-	addr := net.JoinHostPort(t.target.ip.String(), strconv.Itoa(int(t.port)))
-	var dialer net.Dialer
-	conn, err := dialer.DialContext(dialCtx, "tcp", addr)
+	dial := s.dial
+	if dial == nil {
+		var dialer net.Dialer
+		dial = dialer.DialContext
+	}
+	conn, err := dial(dialCtx, "tcp", addr)
 	res := Result{
 		Host:     t.target.host,
 		IP:       t.target.ip,

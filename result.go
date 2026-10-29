@@ -9,10 +9,13 @@ import (
 	"time"
 )
 
+// State - итог проверки одного порта
 type State int
 
 const (
-	StateOpen State = iota
+	// нумерация с 1: нулевое значение State не должно выглядеть
+	// как StateOpen в нулевом Result{}
+	StateOpen State = iota + 1
 	StateClosed
 	StateTimeout
 	StateUnreachable
@@ -75,6 +78,9 @@ func classify(ctx, dialCtx context.Context, err error) State {
 	return StateError
 }
 
+// Result - результат проверки одного порта
+// Host и IP - что запросили и куда реально ходили,
+// Err - исходная ошибка, nil для StateOpen
 type Result struct {
 	Host     string
 	IP       net.IP
