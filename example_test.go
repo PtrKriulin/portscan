@@ -38,6 +38,6 @@ func ExampleScanner_Scan() {
 	for result := range results {
 		fmt.Println(result.State)
 	}
-}
 
-// Output: open
+	// Output: open
+}

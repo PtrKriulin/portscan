@@ -265,8 +265,8 @@ func TestScanCancelUnresolvableSlowConsumerStress(t *testing.T) {
 		return nil, ctx.Err()
 	})
 	hosts := []string{
-		"bad1.invalid.invalid", "bad2.invalid.invalid",
-		"127.0.0.1", "127.0.0.1",
+		"127.0.0.1",
+		"bad1.invalid.invalid", "bad2.invalid.invalid", // в конце: гонка требует, чтобы продюсер попал в send после выхода воркеров
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	results, err := s.Scan(ctx, hosts, portscan.Range(1, 200))
@@ -353,6 +353,7 @@ func TestValidationSentinelErrors(t *testing.T) {
 		fn   func() error
 	}{
 		{"nil ctx", portscan.ErrNilContext, func() error {
+			//lint:ignore SA1012 намеренная проверка nil-контекста
 			_, err := newScanner().Scan(nil, []string{"127.0.0.1"}, portscan.List(80))
 			return err
 		}},

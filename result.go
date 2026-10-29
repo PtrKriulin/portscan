@@ -15,11 +15,18 @@ type State int
 const (
 	// нумерация с 1: нулевое значение State не должно выглядеть
 	// как StateOpen в нулевом Result{}
+	// StateOpen: TCP-соединение установлено
 	StateOpen State = iota + 1
+
+	// StateClosed: хост явно отклонил подключение (RST)
 	StateClosed
+	// StateTimeout: подключение не уложилось в таймаут
 	StateTimeout
+	// StateUnreachable: узел или сеть недоступны
 	StateUnreachable
+	// StateCanceled: проверка прервана отменой контекста
 	StateCanceled
+	// StateError: любая другая ошибка
 	StateError
 )
 
