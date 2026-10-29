@@ -55,10 +55,47 @@ func TestScanCIDR(t *testing.T) {
 }
 
 func TestCIDRDedupAndMix(t *testing.T) {
-	// Литерал и /32 одного адреса дают один результат.
-	rows := cidrResults(t, []string{"127.0.0.1", "127.0.0.1/32"})
-	if len(rows) != 1 {
-		t.Fatalf("got %d results, want 1 after dedup", len(rows))
+	// Литерал и /32 — разные исходные строки, каждая дает свой результат
+	rows := cidrResults(t, []string{"127.0.0.1", "127.0.0.1", "127.0.0.1/32"})
+	if len(rows) != 2 {
+		t.Fatalf("got %d results, want 2 (one per distinct host string)", len(rows))
+	}
+	hosts := map[string]bool{}
+	for _, r := range rows {
+		hosts[r.Host] = true
+	}
+	if !hosts["127.0.0.1"] || !hosts["127.0.0.1/32"] {
+		t.Fatalf("missing per-host results: %v", hosts)
+	}
+}
+
+func TestScanSameIPDifferentHosts(t *testing.T) {
+	// Два разных указания на один адрес дают по результату на каждую исходную строку
+	rows := cidrResults(t, []string{"127.0.0.1", "127.0.0.0/30"})
+	if len(rows) != 5 {
+		t.Fatalf("got %d results, want 5 (4 CIDR addrs + 1 literal)", len(rows))
+	}
+	sameIP := 0
+	hosts := map[string]bool{}
+	for _, r := range rows {
+		if r.IP.String() == "127.0.0.1" {
+			sameIP++
+			hosts[r.Host] = true
+		}
+	}
+	if sameIP != 2 || !hosts["127.0.0.1"] || !hosts["127.0.0.0/30"] {
+		t.Fatalf("same IP under two host names: got %d results for 127.0.0.1, hosts %v", sameIP, hosts)
+	}
+}
+
+func TestScanPreCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	s := mustScanner(t)
+	results, err := s.Scan(ctx, []string{"127.0.0.1"}, portscan.Range(1, 100))
+	requireNoError(t, err)
+	for r := range results {
+		t.Fatalf("canceled context produced result: %+v", r)
 	}
 }
 

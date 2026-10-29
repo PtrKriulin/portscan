@@ -27,6 +27,7 @@ func BenchmarkScanLoopback(b *testing.B) {
 	ctx := context.Background()
 
 	b.ResetTimer()
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		results, err := s.Scan(ctx, []string{"127.0.0.1"}, portscan.Range(1, 256))
 		if err != nil {
@@ -51,6 +52,7 @@ func BenchmarkScanTimedOut(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		results, err := s.Scan(context.Background(), []string{"192.0.2.1"}, portscan.Range(1, 64))
 		if err != nil {

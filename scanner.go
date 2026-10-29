@@ -75,6 +75,9 @@ func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-c
 				continue
 			}
 			for _, port := range ports {
+				if ctx.Err() != nil {
+					return
+				}
 				select {
 				case tasks <- task{target: t, port: port}:
 				case <-ctx.Done():
@@ -90,6 +93,9 @@ func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-c
 		go func() {
 			defer wg.Done()
 			for t := range tasks {
+				if ctx.Err() != nil {
+					return
+				}
 				if !send(ctx, results, s.check(ctx, t)) {
 					return
 				}

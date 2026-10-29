@@ -2,7 +2,6 @@ package portscan
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -41,14 +40,10 @@ func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 		}
 		addrs, err := net.DefaultResolver.LookupIPAddr(ctx, h)
 		if err != nil {
-			switch {
-			case ctx.Err() != nil:
+			if ctx.Err() != nil {
 				return nil, ctx.Err()
-			case isNotFound(err):
-				out = append(out, target{host: h, err: err})
-			default:
-				return nil, fmt.Errorf("portscan: resolving %q: %w", h, err)
 			}
+			out = append(out, target{host: h, err: err})
 			continue
 		}
 		for _, addr := range addrs {
@@ -59,17 +54,12 @@ func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 }
 
 func appendTarget(out []target, seen map[string]struct{}, host string, ip net.IP) []target {
-	key := ip.String()
+	key := host + "\x00" + ip.String()
 	if _, dup := seen[key]; dup {
 		return out
 	}
 	seen[key] = struct{}{}
 	return append(out, target{host: host, ip: ip})
-}
-
-func isNotFound(err error) bool {
-	var dnsErr *net.DNSError
-	return errors.As(err, &dnsErr) && dnsErr.IsNotFound
 }
 
 func cidrAddrs(host string) ([]net.IP, error) {
