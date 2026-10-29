@@ -20,10 +20,10 @@ type rangeSpec struct{ from, to int }
 
 func (r rangeSpec) expand() ([]uint16, error) {
 	if !isValidPort(r.from) || !isValidPort(r.to) {
-		return nil, fmt.Errorf("portscan: port range %d-%d is outside [1, %d]", r.from, r.to, math.MaxUint16)
+		return nil, fmt.Errorf("portscan: port range %d-%d: %w", r.from, r.to, ErrPortOutOfRange)
 	}
 	if r.from > r.to {
-		return nil, fmt.Errorf("portscan: reversed port range %d-%d", r.from, r.to)
+		return nil, fmt.Errorf("portscan: reversed port range %d-%d: %w", r.from, r.to, ErrReversedRange)
 	}
 	ports := make([]uint16, 0, r.to-r.from+1)
 	for p := r.from; p <= r.to; p++ {
@@ -38,12 +38,12 @@ type listSpec []int
 
 func (l listSpec) expand() ([]uint16, error) {
 	if len(l) == 0 {
-		return nil, fmt.Errorf("portscan: empty port list")
+		return nil, fmt.Errorf("portscan: empty port list: %w", ErrNoPorts)
 	}
 	ports := make([]uint16, len(l))
 	for i, p := range l {
 		if !isValidPort(p) {
-			return nil, fmt.Errorf("portscan: port %d is outside [1, %d]", p, math.MaxUint16)
+			return nil, fmt.Errorf("portscan: port %d: %w", p, ErrPortOutOfRange)
 		}
 		ports[i] = uint16(p)
 	}
@@ -52,7 +52,7 @@ func (l listSpec) expand() ([]uint16, error) {
 
 func expandSpecs(specs ...PortSpec) ([]uint16, error) {
 	if len(specs) == 0 {
-		return nil, fmt.Errorf("portscan: no ports specified")
+		return nil, fmt.Errorf("portscan: no ports specified: %w", ErrNoPorts)
 	}
 	var ports []uint16
 	for i, spec := range specs {

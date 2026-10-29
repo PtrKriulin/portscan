@@ -2,6 +2,7 @@ package portscan_test
 
 import (
 	"context"
+	"errors"
 	"net"
 	"runtime"
 	"sync"
@@ -296,5 +297,49 @@ func TestScannerReuseAndConcurrentScan(t *testing.T) {
 	wg.Wait()
 	if opens != 8 {
 		t.Errorf("got %d open results across 8 concurrent scans, want 8", opens)
+	}
+}
+
+// валидация возвращает ошибки пригодные для errors.Is
+func TestValidationSentinelErrors(t *testing.T) {
+	newScanner := func() *portscan.Scanner {
+		s, err := portscan.New()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	cases := []struct {
+		name string
+		want error
+		fn   func() error
+	}{
+		{"no hosts", portscan.ErrNoHosts, func() error {
+			_, err := newScanner().Scan(context.Background(), nil, portscan.List(80))
+			return err
+		}},
+		{"empty host", portscan.ErrEmptyHost, func() error {
+			_, err := newScanner().Scan(context.Background(), []string{"  "}, portscan.List(80))
+			return err
+		}},
+		{"no ports", portscan.ErrNoPorts, func() error {
+			_, err := newScanner().Scan(context.Background(), []string{"127.0.0.1"})
+			return err
+		}},
+		{"out of range", portscan.ErrPortOutOfRange, func() error {
+			_, err := newScanner().Scan(context.Background(), []string{"127.0.0.1"}, portscan.List(0))
+			return err
+		}},
+		{"reversed range", portscan.ErrReversedRange, func() error {
+			_, err := newScanner().Scan(context.Background(), []string{"127.0.0.1"}, portscan.Range(100, 1))
+			return err
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := tc.fn(); !errors.Is(err, tc.want) {
+				t.Fatalf("want %v, got %v", tc.want, err)
+			}
+		})
 	}
 }

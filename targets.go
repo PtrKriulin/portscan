@@ -16,13 +16,13 @@ type target struct {
 
 func resolveTargets(ctx context.Context, hosts []string) ([]target, error) {
 	if len(hosts) == 0 {
-		return nil, fmt.Errorf("portscan: no hosts specified")
+		return nil, fmt.Errorf("portscan: no hosts specified: %w", ErrNoHosts)
 	}
 	out := make([]target, 0, len(hosts))
 	seen := make(map[string]struct{})
 	for _, h := range hosts {
-		if h == "" {
-			return nil, fmt.Errorf("portscan: empty host")
+		if strings.TrimSpace(h) == "" {
+			return nil, fmt.Errorf("portscan: empty host: %w", ErrEmptyHost)
 		}
 		if strings.Contains(h, "/") {
 			addrs, err := cidrAddrs(h)
