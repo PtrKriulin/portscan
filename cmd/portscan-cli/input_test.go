@@ -34,7 +34,7 @@ func TestParsePortSpecs(t *testing.T) {
 		{"mixed", "22, 80, 8000-9000", false, 3},
 		{"single", "22", false, 1},
 		{"only range", "8000-9000", false, 1},
-		{"empty", "", false, 0}, // пустая строка — пустой список спек, валидация пакета решит
+		{"empty", "", false, 0},
 		{"bad token", "22, abc", true, 0},
 		{"bad range", "80-x", true, 0},
 	}

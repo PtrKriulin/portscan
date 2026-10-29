@@ -1,8 +1,6 @@
-# содержимое пользовательских каталогов не индексируется, структура - да
 data/input/*
 data/output/*
 !data/input/.gitkeep
 !data/output/.gitkeep
 
-# локальный мусор
 *.test

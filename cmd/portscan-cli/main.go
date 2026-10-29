@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	scanner, err := portscan.New() // по умолчанию: NumCPU подключений, таймаут 1 с
+	scanner, err := portscan.New()
 	if err != nil {
 		fatal(err)
 	}

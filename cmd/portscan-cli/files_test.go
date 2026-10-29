@@ -26,11 +26,11 @@ func TestJobPath(t *testing.T) {
 		{"1", "/data/input/job.json"},
 		{"2", "/data/input/other.json"},
 		{"job.json", "/data/input/job.json"},
-		{"job", "/data/input/job.json"}, // суффикс .json опускается
-		{"3", ""},                       // нет такого номера
-		{"unknown", ""},                 // нет такого файла
-		{"", ""},                        // пустой ввод
-		{"job.json.txt", ""},            // не из списка
+		{"job", "/data/input/job.json"}, // суффикс дописывается, если нет
+		{"3", ""},
+		{"unknown", ""},
+		{"", ""},
+		{"job.json.txt", ""},
 	}
 	for _, tc := range cases {
 		if got := jobPath(tc.in, jobs); got != tc.want {

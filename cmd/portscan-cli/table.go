@@ -12,10 +12,6 @@ import (
 	"portscan"
 )
 
-/*
-печатает результаты выровненной таблицей: шапка, ширины
-колонок по фактическому содержимому, сортировка по порту и адресу
-*/
 func printResults(w io.Writer, results []portscan.Result) {
 	const (
 		colHost = iota

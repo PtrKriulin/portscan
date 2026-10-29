@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-// дефолт условный: задача сетевая а не процессорная,
-// для больших объемов задавайте WithConcurrency явно
 func defaultConcurrency() int {
 	return runtime.NumCPU()
 }
@@ -48,8 +46,8 @@ func New(opts ...Option) (*Scanner, error) {
 	return s, nil
 }
 
-// Scan валидирует ввод и резолвит хостов синхронно - ошибку ввода отдаем до
-// старта горутин. Ошибка резолвинга одного имени не прерывает скан, придет
+// Scan валидирует ввод и резолвит хостов синхронно, ошибку отдает до старта
+// горутин. Ошибка резолвинга одного имени не прерывает скан - придет
 // отдельным Result с ip == nil. Канал закрывается после всех результатов
 func (s *Scanner) Scan(ctx context.Context, hosts []string, specs ...PortSpec) (<-chan Result, error) {
 	if ctx == nil {
@@ -66,7 +64,6 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, specs ...PortSpec) (
 	return s.run(ctx, targets, ports), nil
 }
 
-// select на каждой отправке - медленный читатель не должен блокировать отмену
 func (s *Scanner) run(ctx context.Context, targets []target, ports []uint16) <-chan Result {
 	tasks := make(chan task, s.concurrency)
 	results := make(chan Result, s.concurrency)

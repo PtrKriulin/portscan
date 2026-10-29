@@ -10,10 +10,6 @@ import (
 	"portscan"
 )
 
-/*
-проверяет контракт parseRange:
-успехом считается когда обе части вокруг дефиса целые числа
-*/
 func FuzzParseRange(f *testing.F) {
 	f.Add("8000-9000")
 	f.Add("1-2")
@@ -55,10 +51,6 @@ func atoi(t *testing.T, s string) int {
 	return n
 }
 
-/*
-дает спеки, принимаемые валидацией Scanner.Scan без сетевой
-активности: расхождение между парсером cli и валидацией пакета является багом
-*/
 func FuzzParsePortSpecs(f *testing.F) {
 	f.Add("22, 80, 8000-9000")
 	f.Add("")
@@ -75,13 +67,6 @@ func FuzzParsePortSpecs(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		/*
-			Валидация происходит до любой сетевой активности. Парсер cli
-			сознательно не проверяет границы портов (это делает пакет)
-			поэтому 0 или 65536-65537 здесь законно дают ошибку
-			валидации portscan:. Ошибка с любым другим префиксом означает
-			расхождение парсера с пакетом — баг
-		*/
 		results, err := scanner.Scan(context.Background(), []string{"127.0.0.1"}, specs...)
 		if err != nil {
 			if !strings.HasPrefix(err.Error(), "portscan:") {

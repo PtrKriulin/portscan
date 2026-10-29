@@ -9,11 +9,6 @@ import (
 	"portscan"
 )
 
-/*
-Меряет общий путь сканера на быстрой цели:
-открытый listener на loopback плюс 255 закрытых портов, каждый из
-которых отвечает econnrefused мгновенно
-*/
 func BenchmarkScanLoopback(b *testing.B) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -45,11 +40,8 @@ func BenchmarkScanLoopback(b *testing.B) {
 	}
 }
 
-/*
-Худший случай для планировщика воркеров:
-TEST-NET-1 (192.0.2.1) молча теряет пакеты, каждая попытка
-упирается в таймаут и держит слот воркера до его истечения
-*/
+// худший случай: TEST-NET-1 молча теряет пакеты, каждая попытка держит
+// слот воркера до истечения таймаута
 func BenchmarkScanTimedOut(b *testing.B) {
 	s, err := portscan.New(
 		portscan.WithConcurrency(64),

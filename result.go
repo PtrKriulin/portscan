@@ -39,16 +39,6 @@ func (s State) String() string {
 	}
 }
 
-/*
-классификация ошибки в State - только по типам (errors.Is/As), по тексту нельзя,
-текст зависит от ОС и локали
-
-тонкий момент: DeadlineExceeded приходит и при отмене родительского контекста
-и при истечении нашего таймаута попытки, сравниваем дедлайны между собой -
-родительский истек не позже дедлайна попытки значит отмену инициировал
-вызывающий (canceled), иначе попытка не уложилась в свой таймаут (timeout)
-без этого различия при отмене все незавершенные попытки ушли бы как timeout
-*/
 func classify(ctx, dialCtx context.Context, err error) State {
 	if errors.Is(err, context.Canceled) {
 		return StateCanceled
@@ -63,7 +53,6 @@ func classify(ctx, dialCtx context.Context, err error) State {
 	}
 
 	var opErr *net.OpError
-	// часть таймаутов не заворачивается в DeadlineExceeded
 	if errors.As(err, &opErr) && opErr.Timeout() {
 		return StateTimeout
 	}
@@ -72,7 +61,6 @@ func classify(ctx, dialCtx context.Context, err error) State {
 	if errors.As(err, &errno) {
 		switch errno {
 		case syscall.ECONNREFUSED:
-			// RST на хендшейке, часть стеков отдает ECONNRESET
 			fallthrough
 		case syscall.ECONNRESET:
 			return StateClosed
@@ -83,7 +71,6 @@ func classify(ctx, dialCtx context.Context, err error) State {
 			syscall.ECONNABORTED, syscall.ENETRESET:
 			return StateUnreachable
 		case syscall.EACCES, syscall.EPERM:
-			// локальный запрет, до хоста не дошли - error а не unreachable
 			return StateError
 		}
 	}
