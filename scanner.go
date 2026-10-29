@@ -20,6 +20,7 @@ func defaultConcurrency() int {
 type Scanner struct {
 	concurrency int
 	timeout     time.Duration
+	sem         chan struct{} // общий лимит на сканер, а не на один вызов Scan
 	dial        func(context.Context, string, string) (net.Conn, error)
 }
 
@@ -46,11 +47,12 @@ func New(opts ...Option) (*Scanner, error) {
 		}
 	}
 	if s.concurrency < 1 {
-		return nil, fmt.Errorf("portscan: concurrency must be > 0, got %d", s.concurrency)
+		return nil, fmt.Errorf("portscan: concurrency must be > 0, got %d: %w", s.concurrency, ErrInvalidConcurrency)
 	}
 	if s.timeout <= 0 {
-		return nil, fmt.Errorf("portscan: connect timeout must be > 0, got %s", s.timeout)
+		return nil, fmt.Errorf("portscan: connect timeout must be > 0, got %s: %w", s.timeout, ErrInvalidTimeout)
 	}
+	s.sem = make(chan struct{}, s.concurrency)
 	return s, nil
 }
 
@@ -131,6 +133,8 @@ type task struct {
 
 func (s *Scanner) check(ctx context.Context, t task) Result {
 	start := time.Now()
+	s.sem <- struct{}{}
+	defer func() { <-s.sem }()
 	addr := net.JoinHostPort(t.target.ip.String(), strconv.Itoa(int(t.port)))
 	dialCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()

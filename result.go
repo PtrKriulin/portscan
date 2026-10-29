@@ -88,6 +88,8 @@ func classify(ctx, dialCtx context.Context, err error) State {
 // Result - результат проверки одного порта
 // Host и IP - что запросили и куда реально ходили,
 // Err - исходная ошибка, nil для StateOpen
+// Duration - суммарное время проверки: ожидание слота конкурентности
+// плюс само подключение
 type Result struct {
 	Host     string
 	IP       net.IP

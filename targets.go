@@ -71,14 +71,14 @@ func appendTarget(out []target, seen map[string]struct{}, host string, ip net.IP
 func cidrAddrs(host string) ([]net.IP, error) {
 	p, err := netip.ParsePrefix(host)
 	if err != nil {
-		return nil, fmt.Errorf("portscan: invalid cidr %q: %w", host, err)
+		return nil, fmt.Errorf("portscan: %w %q: %v", ErrInvalidCIDR, host, err)
 	}
 	if p.Masked() != p {
-		return nil, fmt.Errorf("portscan: invalid cidr %q: contains host bits", host)
+		return nil, fmt.Errorf("portscan: %w %q: contains host bits", ErrInvalidCIDR, host)
 	}
 	const maxHostBits = 16
 	if p.Bits() < p.Addr().BitLen()-maxHostBits {
-		return nil, fmt.Errorf("portscan: cidr %q: too many addresses, use /%d or smaller", host, p.Addr().BitLen()-maxHostBits)
+		return nil, fmt.Errorf("portscan: %w %q: too many addresses, use /%d or smaller", ErrInvalidCIDR, host, p.Addr().BitLen()-maxHostBits)
 	}
 	var out []net.IP
 	for addr := p.Addr(); p.Contains(addr); addr = addr.Next() {

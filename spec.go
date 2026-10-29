@@ -65,7 +65,7 @@ func expandSpecs(specs ...PortSpec) ([]uint16, error) {
 	var ports []uint16
 	for i, spec := range specs {
 		if spec == nil {
-			return nil, fmt.Errorf("portscan: spec %d is nil", i)
+			return nil, fmt.Errorf("portscan: spec %d: %w", i, ErrNilSpec)
 		}
 		expanded, err := spec.expand()
 		if err != nil {
